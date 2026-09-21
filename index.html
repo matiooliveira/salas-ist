@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salas livres no Técnico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fundo: #0B1620;
+      --painel: #12212D;
+      --linha: #22384A;
+      --texto: #E8F1F6;
+      --texto-suave: #93A9B8;
+      --ciano: #38BDF8;
+      --verde: #7CE3A1;
+      --ambar: #F6C453;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--fundo);
+      color: var(--texto);
+      font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pagina {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
+    }
+
+    h1 {
+      margin: 0 0 1.25rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    /* Controlos: duas linhas, cada uma com a sua grelha */
+    .controlos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--painel);
+      border: 1px solid var(--linha);
+      border-radius: 12px;
+    }
+
+    .linha {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      gap: 0.75rem;
+    }
+
+    .campo {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    label {
+      font-size: 0.875rem;
+      color: var(--texto-suave);
+    }
+
+    select, input, button {
+      font: inherit;
+      color: var(--texto);
+      background: var(--fundo);
+      border: 1px solid var(--linha);
+      border-radius: 8px;
+      padding: 0.6rem 0.7rem;
+    }
+
+    button {
+      align-self: end;
+      cursor: pointer;
+      font-weight: 600;
+      background: var(--ciano);
+      border-color: var(--ciano);
+      color: #04202E;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--ciano);
+      outline-offset: 2px;
+    }
+
+    #resumo {
+      margin: 1.5rem 0 0.5rem;
+      font-size: 1.125rem;
+    }
+
+    .legenda {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0 0 0.5rem;
+      font-size: 0.875rem;
+      color: var(--texto-suave);
+    }
+
+    /* Cada edifício tem um título que fica colado ao topo ao fazer scroll */
+    h2 {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 1.5rem 0 0;
+      padding: 0.6rem 0.75rem;
+      background: var(--fundo);
+      border-left: 3px solid var(--ciano);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .contagem {
+      color: var(--texto-suave);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .sala {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--linha);
+    }
+
+    .nome { font-weight: 700; }
+
+    .detalhes {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--texto-suave);
+    }
+
+    /* A cor diz quanto tempo a sala fica livre */
+    .pilula {
+      flex-shrink: 0;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .curto { background: rgba(246, 196, 83, 0.15);  color: var(--ambar); }
+    .medio { background: rgba(56, 189, 248, 0.15);  color: var(--ciano); }
+    .longo { background: rgba(124, 227, 161, 0.15); color: var(--verde); }
+
+    .nota {
+      margin: 2rem 0 0.25rem;
+      font-size: 0.875rem;
+      color: var(--texto-suave);
+    }
+
+    /* Em ecrãs estreitos, o botão Agora ocupa a linha toda */
+    @media (max-width: 34rem) {
+      #agora { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pagina">
+    <h1>Salas livres no Técnico</h1>
+
+    <div class="controlos">
+      <div class="linha">
+        <div class="campo">
+          <label for="campus">Campus</label>
+          <select id="campus"></select>
+        </div>
+        <div class="campo">
+          <label for="edificio">Edifício</label>
+          <select id="edificio"></select>
+        </div>
+      </div>
+      <div class="linha">
+        <div class="campo">
+          <label for="dia">Dia</label>
+          <input id="dia" type="date">
+        </div>
+        <div class="campo">
+          <label for="hora">Hora</label>
+          <input id="hora" type="time">
+        </div>
+        <button id="agora" type="button">Agora</button>
+      </div>
+    </div>
+
+    <p id="resumo">A carregar...</p>
+    <p class="legenda">
+      Fica livre durante
+      <span class="pilula curto">menos de 45 min</span>
+      <span class="pilula medio">até 2 h</span>
+      <span class="pilula longo">mais de 2 h</span>
+    </p>
+
+    <div id="lista"></div>
+
+    <p class="nota">«Livre» quer dizer que o Fénix não tem nenhuma aula ou reserva registada. Não garante que o edifício esteja aberto.</p>
+    <p class="nota" id="fonte"></p>
+    <p class="nota">Projeto de estudantes, não oficial. Dados públicos do Fénix (Técnico Lisboa).</p>
+  </div>
+
+  <script>
+    let dados = null;               // salas.json: a lista de salas
+    let indice = null;              // indice.json: as semanas que existem
+    let semanaAplicada = null;      // semana cujos horários estão nas salas neste momento
+    let pedidoAtual = 0;            // conta as atualizações, para ignorar as que ficaram para trás
+    const semanasCarregadas = new Map();  // semana -> pedido (já feito ou em curso)
+
+    function criar(tag, classe, texto) {
+      const elemento = document.createElement(tag);
+      if (classe) elemento.className = classe;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    }
+
+    function agoraLocal() {
+      const d = new Date();
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const diaMes = String(d.getDate()).padStart(2, "0");
+      const horas = String(d.getHours()).padStart(2, "0");
+      const minutos = String(d.getMinutes()).padStart(2, "0");
+      return {
+        dia: `${d.getFullYear()}-${mes}-${diaMes}`,
+        hora: `${horas}:${minutos}`,
+      };
+    }
+
+    function poremAgora() {
+      const agora = agoraLocal();
+      document.getElementById("dia").value = agora.dia;
+      document.getElementById("hora").value = agora.hora;
+    }
+
+    function dataExtenso(dia) {
+      return new Intl.DateTimeFormat("pt-PT", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }).format(new Date(`${dia}T12:00`));
+    }
+
+    function dataParaTexto(d) {
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const diaMes = String(d.getDate()).padStart(2, "0");
+      return `${d.getFullYear()}-${mes}-${diaMes}`;
+    }
+
+    function somarDias(dia, n) {
+      const d = new Date(`${dia}T12:00`);
+      d.setDate(d.getDate() + n);
+      return dataParaTexto(d);
+    }
+
+    // A segunda-feira da semana que contém este dia
+    function segundaDe(dia) {
+      const numeroDoDia = new Date(`${dia}T12:00`).getDay();
+      return somarDias(dia, -((numeroDoDia + 6) % 7));
+    }
+
+    async function pedirJSON(caminho) {
+      const resposta = await fetch(caminho, { cache: "no-cache" });
+      if (!resposta.ok) throw new Error(`${caminho}: erro ${resposta.status}`);
+      return resposta.json();
+    }
+
+    // Mete os horários de uma semana dentro de cada sala
+    function aplicarSemana(segunda, ficheiro) {
+      for (const sala of dados.salas) {
+        sala.eventos = ficheiro.eventos[sala.id] ?? [];
+      }
+      semanaAplicada = segunda;
+
+      const gerado = new Date(ficheiro.geradoEm).toLocaleString("pt-PT", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      document.getElementById("fonte").textContent = `Horários desta semana recolhidos em ${gerado}.`;
+    }
+
+    // Garante que a semana do dia escolhido está carregada e desenha
+    async function atualizar() {
+      if (dados === null) return;
+      const meuPedido = ++pedidoAtual;
+
+      const dia = document.getElementById("dia").value;
+      if (dia) {
+        const segunda = segundaDe(dia);
+        if (indice.semanas.includes(segunda) && segunda !== semanaAplicada) {
+          if (!semanasCarregadas.has(segunda)) {
+            semanasCarregadas.set(segunda, pedirJSON(`semanas/${segunda}.json`));
+          }
+          document.getElementById("resumo").textContent = "A carregar a semana...";
+          let ficheiro;
+          try {
+            ficheiro = await semanasCarregadas.get(segunda);
+          } catch (erro) {
+            semanasCarregadas.delete(segunda); // para poder tentar outra vez
+            if (meuPedido === pedidoAtual) {
+              document.getElementById("resumo").textContent = `Não consegui carregar a semana de ${segunda}. ${erro.message}`;
+            }
+            return;
+          }
+          if (meuPedido !== pedidoAtual) return; // entretanto mudaste outra vez
+          aplicarSemana(segunda, ficheiro);
+        }
+      }
+      desenhar();
+    }
+
+    function preencherCampi() {
+      const select = document.getElementById("campus");
+      const campi = [...new Set(dados.salas.map((sala) => sala.campus))].sort();
+
+      select.innerHTML = '<option value="">Todos os campi</option>';
+      for (const campus of campi) {
+        select.appendChild(criar("option", "", campus));
+      }
+
+      if (campi.includes("Alameda")) select.value = "Alameda";
+    }
+
+    function nomeDoEdificio(edificio) {
+      return edificio || "Sem edifício";
+    }
+
+    function preencherEdificios() {
+      const campusEscolhido = document.getElementById("campus").value;
+      const select = document.getElementById("edificio");
+
+      const edificios = new Set();
+      for (const sala of dados.salas) {
+        if (campusEscolhido === "" || sala.campus === campusEscolhido) {
+          edificios.add(sala.edificio);
+        }
+      }
+
+      const ordenados = [...edificios].sort((a, b) =>
+        nomeDoEdificio(a).localeCompare(nomeDoEdificio(b), "pt")
+      );
+
+      select.innerHTML = '<option value="todos">Todos</option>';
+      for (const edificio of ordenados) {
+        const opcao = criar("option", "", nomeDoEdificio(edificio));
+        opcao.value = edificio;
+        select.appendChild(opcao);
+      }
+    }
+
+    function salaLivre(sala, dia, hora) {
+      const momento = `${dia}T${hora}`;
+      const ocupada = sala.eventos.some(
+        (ev) => ev.inicio <= momento && momento < ev.fim
+      );
+      return !ocupada;
+    }
+
+    function livreAte(sala, dia, hora) {
+      const momento = `${dia}T${hora}`;
+      const proximo = sala.eventos.find(
+        (ev) => ev.inicio > momento && ev.inicio.startsWith(dia)
+      );
+      return proximo ? proximo.inicio.slice(11) : null;
+    }
+
+    function minutosLivres(hora, ate) {
+      if (ate === null) return Infinity;
+      const [h1, m1] = hora.split(":").map(Number);
+      const [h2, m2] = ate.split(":").map(Number);
+      return h2 * 60 + m2 - (h1 * 60 + m1);
+    }
+
+    function corDaPilula(minutos) {
+      if (minutos < 45) return "curto";
+      if (minutos < 120) return "medio";
+      return "longo";
+    }
+
+    function linhaDaSala(sala, dia, hora) {
+      const ate = livreAte(sala, dia, hora);
+      const cor = corDaPilula(minutosLivres(hora, ate));
+
+      const detalhes = criar("div", "detalhes");
+      if (sala.piso) detalhes.appendChild(criar("span", "", `piso ${sala.piso}`));
+      detalhes.appendChild(
+        criar("span", "", sala.capacidade ? `${sala.capacidade} lugares` : "capacidade desconhecida")
+      );
+
+      const info = criar("div");
+      info.appendChild(criar("div", "nome", sala.nome));
+      info.appendChild(detalhes);
+
+      const item = criar("li", "sala");
+      item.appendChild(info);
+      item.appendChild(criar("span", `pilula ${cor}`, ate ? `até ${ate}` : "resto do dia"));
+      return item;
+    }
+
+    function desenhar() {
+      if (dados === null) return;
+
+      const dia = document.getElementById("dia").value;
+      const hora = document.getElementById("hora").value;
+      const campusEscolhido = document.getElementById("campus").value;
+      const edificioEscolhido = document.getElementById("edificio").value;
+      const resumo = document.getElementById("resumo");
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "";
+
+      if (!dia || !hora) {
+        resumo.textContent = "Escolhe um dia e uma hora.";
+        return;
+      }
+
+      const segunda = segundaDe(dia);
+      if (!indice.semanas.includes(segunda)) {
+        const primeira = indice.semanas[0];
+        const ultima = somarDias(indice.semanas[indice.semanas.length - 1], 6);
+        resumo.textContent = `Não tenho horários para a semana de ${dataExtenso(segunda)}. Tenho de ${dataExtenso(primeira)} a ${dataExtenso(ultima)}.`;
+        return;
+      }
+
+      const diaDaSemana = new Date(`${dia}T12:00`).getDay();
+      const fimDeSemana = diaDaSemana === 0 || diaDaSemana === 6;
+      const aviso = fimDeSemana ? ". Ao fim de semana não há aulas registadas." : "";
+
+      const livres = dados.salas.filter(
+        (sala) =>
+          (campusEscolhido === "" || sala.campus === campusEscolhido) &&
+          (edificioEscolhido === "todos" || sala.edificio === edificioEscolhido) &&
+          salaLivre(sala, dia, hora)
+      );
+
+      if (livres.length === 0) {
+        resumo.textContent = `Nenhuma sala livre às ${hora}, ${dataExtenso(dia)}${aviso}`;
+        return;
+      }
+      resumo.innerHTML = `<strong>${livres.length}</strong> ${
+        livres.length === 1 ? "sala livre" : "salas livres"
+      } às ${hora}, ${dataExtenso(dia)}${aviso}`;
+
+      // Agrupar por edifício
+      const grupos = new Map();
+      for (const sala of livres) {
+        const nomeEdificio = nomeDoEdificio(sala.edificio);
+        const chave = campusEscolhido ? nomeEdificio : `${nomeEdificio} (${sala.campus})`;
+        if (!grupos.has(chave)) grupos.set(chave, []);
+        grupos.get(chave).push(sala);
+      }
+
+      const nomesOrdenados = [...grupos.keys()].sort((a, b) => a.localeCompare(b, "pt"));
+
+      for (const nome of nomesOrdenados) {
+        const salas = grupos.get(nome);
+        salas.sort((a, b) => a.nome.localeCompare(b.nome, "pt", { numeric: true }));
+
+        const titulo = criar("h2", "", nome);
+        titulo.appendChild(criar("span", "contagem", salas.length));
+        lista.appendChild(titulo);
+
+        const ul = criar("ul");
+        for (const sala of salas) {
+          ul.appendChild(linhaDaSala(sala, dia, hora));
+        }
+        lista.appendChild(ul);
+      }
+    }
+
+    async function iniciar() {
+      const resumo = document.getElementById("resumo");
+      try {
+        dados = await pedirJSON("salas.json");
+        indice = await pedirJSON("indice.json");
+      } catch (erro) {
+        dados = null;
+        resumo.textContent = `Não consegui carregar os horários (${erro.message}). Corre o recolher.mjs e abre a página através de um servidor.`;
+        return;
+      }
+      if (indice.semanas.length === 0) {
+        dados = null;
+        resumo.textContent = "Ainda não há nenhuma semana recolhida. Corre o recolher.mjs.";
+        return;
+      }
+
+      for (const sala of dados.salas) sala.eventos = [];
+
+      document.getElementById("dia").min = indice.semanas[0];
+      document.getElementById("dia").max = somarDias(indice.semanas[indice.semanas.length - 1], 6);
+
+      preencherCampi();
+      preencherEdificios();
+      poremAgora();
+      atualizar();
+    }
+
+    document.getElementById("campus").addEventListener("input", () => {
+      preencherEdificios();
+      atualizar();
+    });
+    document.getElementById("edificio").addEventListener("input", atualizar);
+    document.getElementById("dia").addEventListener("input", atualizar);
+    document.getElementById("hora").addEventListener("input", atualizar);
+    document.getElementById("agora").addEventListener("click", () => {
+      poremAgora();
+      atualizar();
+    });
+
+    iniciar();
+  </script>
+</body>
+</html>

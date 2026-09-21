@@ -1,0 +1,65 @@
+name: Atualizar e publicar
+
+on:
+  schedule:
+    - cron: "0 5 * * *"        # todos os dias às 05:00 (hora UTC)
+  workflow_dispatch:            # permite correr à mão no separador Actions
+  push:
+    branches: [main]
+    paths:                      # só volta a publicar se mudares o site
+      - index.html
+      - recolher.mjs
+      - salas.json
+      - .github/workflows/publicar.yml
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  recolher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TZ: Europe/Lisbon
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Recolher horários do Fénix
+        run: node recolher.mjs --semanas=4
+
+      - name: Confirmar que há horários
+        run: |
+          node -e "const i = require('./indice.json'); if (i.semanas.length === 0) { console.error('Nenhuma semana recolhida, o site não foi atualizado.'); process.exit(1); }"
+
+      - name: Preparar os ficheiros do site
+        run: |
+          mkdir site
+          cp index.html salas.json indice.json site/
+          cp -r semanas site/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  publicar:
+    needs: recolher
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
